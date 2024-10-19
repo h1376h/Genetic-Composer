@@ -41,7 +41,6 @@ class Composition:  # Class representing a musical composition
     @param note1: note
     @return: measured numerical value
 '''
-
 def noteValue(note1):  # Calculate the numerical value of a given note
     nameVal = (ord(note1.name[0].upper()) - ord('A') + 5) % 7
     octaveVal = note1.octave
@@ -60,7 +59,6 @@ def noteValue(note1):  # Calculate the numerical value of a given note
     @param notes2: second music piece
     @return: measured numerical difference
 '''
-
 def noteDiff(note1, note2):
     return abs(noteValue(note1) - noteValue(note2))
 
@@ -69,7 +67,6 @@ def noteDiff(note1, note2):
     @param path: file path of the music
     @return: read music piece
 '''
-
 def readStream(path):  # Read music from a given file path
     mfIn = midi.MidiFile()
     mfIn.open(path)
@@ -82,7 +79,6 @@ def readStream(path):  # Read music from a given file path
     @param notes: musical notes
     @param path: file path to write to
 '''
-
 def writeStream(notes, path):
     strm = stream.Stream()
     strm.append(notes)
@@ -96,7 +92,6 @@ def writeStream(notes, path):
     @param dur: duration of the current note
     @return: created note
 '''
-
 def randomNote(dur):  # Create a random note with a specified duration
     noteName = noteNames[randint(0, 6)]  # Randomly select a note from A-G
     noteOctave = noteOctaves[randint(0, 15)]  # Randomly select an octave
@@ -109,7 +104,6 @@ def randomNote(dur):  # Create a random note with a specified duration
     @param baseComposition: music piece to be imitated
     @return: initialized generation
 '''
-
 def initializeCompositions(baseComposition):  # Initialize the first generation of compositions
     compositions = []
 
@@ -127,7 +121,6 @@ def initializeCompositions(baseComposition):  # Initialize the first generation 
     Function to select two parents for a new individual.
     @return: indices of the parents
 '''
-
 def selectParents():
     # 70% chance to select from the best 5 parents
     if randint(1, 10) <= 7:
@@ -145,7 +138,6 @@ def selectParents():
     @param notes2: second music piece
     @return: music piece resulting from crossover
 '''
-
 def crossover(notes1, notes2):  # Perform crossover between two parent compositions
     newNotes = []
     threshold = randint(0, len(notes1) - 1)  # Random position for crossover
@@ -170,7 +162,6 @@ def crossover(notes1, notes2):  # Perform crossover between two parent compositi
     @param baseComposition: music piece to be imitated
     @return: evolved music pieces
 '''
-
 def evolution(compositions, baseComposition):  # Evolve the current generation of compositions
     newCompositions = []
 
@@ -183,69 +174,60 @@ def evolution(compositions, baseComposition):  # Evolve the current generation o
 
     return newCompositions
 
-'''
-    Function to clear the terminal screen.
-'''
-
-def clearScreen():
-    if platform.system() == "Windows":
-        os.system("cls")
-    else:                  # Linux & Mac OS
-        os.system("clear")
-
-
-'''
-    Function to print the program logo.
-'''
-def printBanner():
-    clearScreen()
-    print("\n\t#####################################")
-    print("\t########## GENETIC COMPOSER ##########")
-    print("\t#####################################\n")
-
 
 def main():
-    # user enters their own ".mid" file:
-    print("\tEnter the file path: ", end=""),
+    # Get input file path from the user
+    print("\tEnter the file path of the MIDI file to be varied: ", end="")
     filePath = input()
 
-    if filePath == "": # exit:
+    # Exit if no file path is provided
+    if filePath == "":
+        print("\tNo file path provided. Exiting.")
         exit()
 
-    fileExists = os.path.exists(filePath)
-
-    if (fileExists == False): # check if the file exists
-        print("\n\tFile could not be read.\n")
+    # Check if the file exists
+    if not os.path.exists(filePath):
+        print("\n\tError: File not found or cannot be read.")
         exit()
 
-    # user input for the number of generations
+    # Get the number of generations for the genetic algorithm
     print("\tEnter the number of generations (recommended: 100): ", end="")
     gen = int(input())
 
     print("\n\tCreating variations...")
 
+    # Read the base composition from the input MIDI file
     baseComposition = Composition()
-    baseComposition.notes = readStream(filePath) # .mid file is read
+    baseComposition.notes = readStream(filePath)
 
-    # first generation is initialized:
+    # Initialize the first generation of compositions
     compositions = initializeCompositions(baseComposition)
-    # resulting pieces are sorted by fitness values:
+    
+    # Sort compositions by fitness (lower is better)
     compositions.sort(key=lambda composition: composition.fitness)
 
-    print("\tStarting fitness value: ", compositions[0].fitness)
+    # Print the initial fitness value (best composition)
+    print(f"\tStarting fitness value: {compositions[0].fitness}")
 
-    for _ in range(gen):
-        # generations evolve:
+    # Evolve the compositions for the specified number of generations
+    for generation in range(1, gen + 1):
         compositions = evolution(compositions, baseComposition)
-        # resulting pieces are sorted by fitness values:
         compositions.sort(key=lambda composition: composition.fitness)
+        
+        # Optionally, print progress every 10 generations
+        if generation % 10 == 0:
+            print(f"\tGeneration {generation}: Best fitness = {compositions[0].fitness}")
 
-    print("\t" + str(gen) + " generations resulted in a fitness value: ", compositions[0].fitness)
+    # Print the final fitness value after all generations
+    print(f"\t{gen} generations resulted in a fitness value: {compositions[0].fitness}")
 
-    filePath = filePath.replace(".mid", "_variation.mid")
-    writeStream(compositions[0].notes, filePath) # variation music is written
+    # Generate the output file path for the variation
+    outputFilePath = filePath.replace(".mid", "_variation.mid")
+    
+    # Write the best composition to a new MIDI file
+    writeStream(compositions[0].notes, outputFilePath)
 
-    print("\n\tVariation created:", filePath)
+    print(f"\n\tVariation created: {outputFilePath}")
 
 if __name__ == '__main__':
     main()
