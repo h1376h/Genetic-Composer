@@ -11,29 +11,29 @@ noteOctaves = {0: "2", 1: "2", 2: "2", 3: "3", 4: "3", 5: "3", 6: "4", 7: "4", 8
                11: "5", 12: "6", 13: "6", 14: "7", 15: "1"}
 
 
-class Composition: # class created for musical work
+class Composition:  # Class representing a musical composition
     def __init__(self):
-        self.notes = [] # musical notes
-        self.fitness = 0 # fitness value of the music (the lower, the better)
+        self.notes = []  # List to store musical notes
+        self.fitness = 0  # Fitness value of the music (lower is better)
 
-    def initializeNotes(self, base): # function to initialize notes
+    def initializeNotes(self, base):  # Initialize notes based on a base composition
         for i in range(len(base.notes)):
             self.notes.append(randomNote(base.notes[i].duration))
 
-    def assignRestsAndChords(self, base): # function to initialize chords and rests
+    def assignRestsAndChords(self, base):  # Assign rests and chords from the base composition
         for i in range(len(base.notes)):
-            if (type(base.notes[i]) != note.Note):
+            if not isinstance(base.notes[i], note.Note):
                 self.notes[i] = base.notes[i]
 
-    def assignDurations(self, base): # function to initialize note durations
+    def assignDurations(self, base):  # Assign durations to notes based on the base composition
         for i in range(len(base.notes)):
             self.notes[i].duration = base.notes[i].duration
 
-    def calculateFitness(self, base): # function to measure fitness value
-        self.fitness = 0  # less is better
+    def calculateFitness(self, base):  # Calculate the fitness value of the composition
+        self.fitness = 0  # Reset fitness value
 
         for i in range(len(self.notes)):
-            if type(base.notes[i]) == note.Note:
+            if isinstance(base.notes[i], note.Note):
                 self.fitness += noteDiff(base.notes[i], self.notes[i])
 
 '''
@@ -42,17 +42,17 @@ class Composition: # class created for musical work
     @return: measured numerical value
 '''
 
-def noteValue(note1):
+def noteValue(note1):  # Calculate the numerical value of a given note
     nameVal = (ord(note1.name[0].upper()) - ord('A') + 5) % 7
     octaveVal = note1.octave
 
     if len(note1.name) > 1:
-        if note1.name[1] == '#': # sharp, raises the pitch by a half step
+        if note1.name[1] == '#':  # Sharp, raises the pitch by a half step
             octaveVal += 0.05
-        else:                     # flat, lowers the pitch by a half step
+        else:  # Flat, lowers the pitch by a half step
             octaveVal -= 0.05
 
-    return 10*octaveVal + nameVal
+    return 10 * octaveVal + nameVal
 
 '''
     Function to measure the numerical difference between two notes.
@@ -70,7 +70,7 @@ def noteDiff(note1, note2):
     @return: read music piece
 '''
 
-def readStream(path):
+def readStream(path):  # Read music from a given file path
     mfIn = midi.MidiFile()
     mfIn.open(path)
     mfIn.read()
@@ -97,14 +97,11 @@ def writeStream(notes, path):
     @return: created note
 '''
 
-def randomNote(dur):
-    # note is randomly selected from A-G:
-    noteName = noteNames[randint(0, 6)]
-    # note value is randomly selected from 1-7:
-    noteOctave = noteOctaves[randint(0, 15)]
-    newNote = note.Note(noteName + str(noteOctave))
-    # duration of the note is assigned:
-    newNote.duration = dur
+def randomNote(dur):  # Create a random note with a specified duration
+    noteName = noteNames[randint(0, 6)]  # Randomly select a note from A-G
+    noteOctave = noteOctaves[randint(0, 15)]  # Randomly select an octave
+    newNote = note.Note(noteName + str(noteOctave))  # Create a new note
+    newNote.duration = dur  # Assign duration to the note
     return newNote
 
 '''
@@ -113,19 +110,15 @@ def randomNote(dur):
     @return: initialized generation
 '''
 
-def initializeCompositions(baseComposition):
+def initializeCompositions(baseComposition):  # Initialize the first generation of compositions
     compositions = []
 
-    for _ in range(100):
+    for _ in range(100):  # Create 100 compositions
         composition = Composition()
-        # notes are initialized:
-        composition.initializeNotes(baseComposition)
-        # chords and rests are initialized:
-        composition.assignRestsAndChords(baseComposition)
-        # note durations are initialized:
-        composition.assignDurations(baseComposition)
-        # fitness value is measured:
-        composition.calculateFitness(baseComposition)
+        composition.initializeNotes(baseComposition)  # Initialize notes
+        composition.assignRestsAndChords(baseComposition)  # Assign rests and chords
+        composition.assignDurations(baseComposition)  # Assign durations
+        composition.calculateFitness(baseComposition)  # Calculate fitness
         compositions.append(composition)
 
     return compositions
@@ -153,22 +146,20 @@ def selectParents():
     @return: music piece resulting from crossover
 '''
 
-def crossover(notes1, notes2):
+def crossover(notes1, notes2):  # Perform crossover between two parent compositions
     newNotes = []
-    threshold = randint(0, len(notes1)-1) # position for crossover
+    threshold = randint(0, len(notes1) - 1)  # Random position for crossover
 
     for i in range(threshold):
-        # existing note is added to new music with 99% probability
-        if type(notes1[i]) != note.Note or randint(1, 100) <= 99:
-            newNotes.append(notes1[i])
-        else:    # mutation
+        if not isinstance(notes1[i], note.Note) or randint(1, 100) <= 99:
+            newNotes.append(notes1[i])  # Add existing note with 99% probability
+        else:  # Mutation
             newNotes.append(randomNote(notes1[i].duration))
 
     for i in range(threshold, len(notes1)):
-        # existing note is added to new music with 99% probability
-        if type(notes2[i]) != note.Note or randint(1, 100) <= 99:
-            newNotes.append(notes2[i])
-        else:  # mutation
+        if not isinstance(notes2[i], note.Note) or randint(1, 100) <= 99:
+            newNotes.append(notes2[i])  # Add existing note with 99% probability
+        else:  # Mutation
             newNotes.append(randomNote(notes2[i].duration))
 
     return newNotes
@@ -180,19 +171,15 @@ def crossover(notes1, notes2):
     @return: evolved music pieces
 '''
 
-def evolution(compositions, baseComposition):
+def evolution(compositions, baseComposition):  # Evolve the current generation of compositions
     newCompositions = []
 
     for i in range(len(compositions)):
-        # parents of the music piece are selected:
-        x, y = selectParents()
+        x, y = selectParents()  # Select parents for crossover
         composition = Composition()
-        # new individual is created by crossing over the selected parents:
-        composition.notes = crossover(compositions[x].notes, compositions[y].notes)
-        # fitness value of the new individual is measured:
-        composition.calculateFitness(baseComposition)
-        # individual is added to the new generation:
-        newCompositions.append(composition)
+        composition.notes = crossover(compositions[x].notes, compositions[y].notes)  # Create new composition
+        composition.calculateFitness(baseComposition)  # Calculate fitness
+        newCompositions.append(composition)  # Add to new generation
 
     return newCompositions
 
