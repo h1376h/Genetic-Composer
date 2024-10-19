@@ -1,234 +1,203 @@
-'''
-	Yapay Zeka - Dönem Ödevi
-	Genetik Besteci
-
-	Öğrenci: Osman Araz
-	Numara: 16011020
-
-	Teslim Tarihi: 17.05.2019
-'''
-
-'''
-	NOT: Programın çalışması için bilgisayarınızda Python 3 yüklü olması gerekmektedir.
-    Python indirmek için:
-    https://www.python.org/downloads/
-
-    Gerekli kütüphane kurulumu için terminal üzerinden aşağıdaki komutu çalıştırın:
-    pip install music21
-'''
-
 import os
 import platform
 from music21 import note, stream, midi, interval, chord
 from random import randint
 
-#########################################
 
-# notalar:
+# notes:
 noteNames = ["C", "D", "E", "F", "G", "A", "B"]
-# nota değerleri için olasılık değerlerine göre bir hash tablosu:
+# hash table for note values based on probability values:
 noteOctaves = {0: "2", 1: "2", 2: "2", 3: "3", 4: "3", 5: "3", 6: "4", 7: "4", 8: "4", 9: "5", 10: "5",
-			   11: "5", 12: "6", 13: "6", 14: "7", 15: "1"}
+               11: "5", 12: "6", 13: "6", 14: "7", 15: "1"}
 
-#########################################
 
-class Composition: # müzik eseri için oluşturulan sınıf
-	def __init__(self):
-		self.notes = [] # müzik notaları
-		self.fitness = 0 # müziğin uygunluk değeri (ne kadar az, o kadar iyi)
+class Composition: # class created for musical work
+    def __init__(self):
+        self.notes = [] # musical notes
+        self.fitness = 0 # fitness value of the music (the lower, the better)
 
-	def initializeNotes(self, base): # notaları ilklendiren fonksiyon
-		for i in range(len(base.notes)):
-			self.notes.append(randomNote(base.notes[i].duration))
+    def initializeNotes(self, base): # function to initialize notes
+        for i in range(len(base.notes)):
+            self.notes.append(randomNote(base.notes[i].duration))
 
-	def assignRestsAndChords(self, base): # akortları ve boşlukları ilklendiren fonksiyon
-		for i in range(len(base.notes)):
-			if (type(base.notes[i]) != note.Note):
-				self.notes[i] = base.notes[i]
+    def assignRestsAndChords(self, base): # function to initialize chords and rests
+        for i in range(len(base.notes)):
+            if (type(base.notes[i]) != note.Note):
+                self.notes[i] = base.notes[i]
 
-	def assignDurations(self, base): # nota sürelerini ilklendiren fonksiyon
-		for i in range(len(base.notes)):
-			self.notes[i].duration = base.notes[i].duration
+    def assignDurations(self, base): # function to initialize note durations
+        for i in range(len(base.notes)):
+            self.notes[i].duration = base.notes[i].duration
 
-	def calculateFitness(self, base): # uygunluk değerini ölçen fonksiyon
-		self.fitness = 0  # less is better
+    def calculateFitness(self, base): # function to measure fitness value
+        self.fitness = 0  # less is better
 
-		for i in range(len(self.notes)):
-			if type(base.notes[i]) == note.Note:
-				self.fitness += noteDiff(base.notes[i], self.notes[i])
+        for i in range(len(self.notes)):
+            if type(base.notes[i]) == note.Note:
+                self.fitness += noteDiff(base.notes[i], self.notes[i])
 
-#########################################
 '''
-	Verilen bir notanın sayısal değerini ölçen fonksiyon.
-	@param note1: nota
-	@return: ölçülen sayısal değer
+    Function to measure the numerical value of a given note.
+    @param note1: note
+    @return: measured numerical value
 '''
 
 def noteValue(note1):
-	nameVal = (ord(note1.name[0].upper()) - ord('A') + 5) % 7
-	octaveVal = note1.octave
+    nameVal = (ord(note1.name[0].upper()) - ord('A') + 5) % 7
+    octaveVal = note1.octave
 
-	if len(note1.name) > 1:
-		if note1.name[1] == '#': # diyez, sesi yarım ses inceltir
-			octaveVal += 0.05
-		else:				     # bemol, sesi yarım ses kalınlaştırır
-			octaveVal -= 0.05
+    if len(note1.name) > 1:
+        if note1.name[1] == '#': # sharp, raises the pitch by a half step
+            octaveVal += 0.05
+        else:                     # flat, lowers the pitch by a half step
+            octaveVal -= 0.05
 
-	return 10*octaveVal + nameVal
+    return 10*octaveVal + nameVal
 
-#########################################
 '''
-	İki nota arasındaki sayısal farkı ölçen fonksiyon.
-	@param notes1: birinci müzik parçası
-	@param notes2: ikinci müzik parçası
-	@return: ölçülen sayısal fark
+    Function to measure the numerical difference between two notes.
+    @param notes1: first music piece
+    @param notes2: second music piece
+    @return: measured numerical difference
 '''
 
 def noteDiff(note1, note2):
-	return abs(noteValue(note1) - noteValue(note2))
+    return abs(noteValue(note1) - noteValue(note2))
 
-#########################################
 '''
-	Dosya konumu verilen müziği okuyan fonksiyon.
-	@param path: müziğin dosya konumu
-	@return: okunan müzik parçası
+    Function to read music from a given file path.
+    @param path: file path of the music
+    @return: read music piece
 '''
 
 def readStream(path):
-	mfIn = midi.MidiFile()
-	mfIn.open(path)
-	mfIn.read()
-	mfIn.close()
-	return midi.translate.midiFileToStream(mfIn).flat
+    mfIn = midi.MidiFile()
+    mfIn.open(path)
+    mfIn.read()
+    mfIn.close()
+    return midi.translate.midiFileToStream(mfIn).flat
 
-#########################################
 '''
-	Oluşturulan müziği bir dosyaya yazdıran fonksiyon.
-	@param notes: müzik notaları
-	@param path: yazdırılacak dosya konumu
+    Function to write the generated music to a file.
+    @param notes: musical notes
+    @param path: file path to write to
 '''
 
 def writeStream(notes, path):
-	strm = stream.Stream()
-	strm.append(notes)
-	mfOut = midi.translate.streamToMidiFile(strm)
-	mfOut.open(path, 'wb')
-	mfOut.write()
-	mfOut.close()
+    strm = stream.Stream()
+    strm.append(notes)
+    mfOut = midi.translate.streamToMidiFile(strm)
+    mfOut.open(path, 'wb')
+    mfOut.write()
+    mfOut.close()
 
-#########################################
 '''
-	Rastegele bir nota oluşturan fonksiyon.
-	@param dur: mevcut notanın çalınma süresi
-	@return: oluşturulan nota
+    Function to create a random note.
+    @param dur: duration of the current note
+    @return: created note
 '''
 
 def randomNote(dur):
-	# nota A-G arasından rastgele seçilir:
-	noteName = noteNames[randint(0, 6)]
-	# nota değeri 1-7 arasından rastgele seçilir:
-	noteOctave = noteOctaves[randint(0, 15)]
-	newNote = note.Note(noteName + str(noteOctave))
-	# notanın süresi atanır:
-	newNote.duration = dur
-	return newNote
+    # note is randomly selected from A-G:
+    noteName = noteNames[randint(0, 6)]
+    # note value is randomly selected from 1-7:
+    noteOctave = noteOctaves[randint(0, 15)]
+    newNote = note.Note(noteName + str(noteOctave))
+    # duration of the note is assigned:
+    newNote.duration = dur
+    return newNote
 
-#########################################
 '''
-	İlk oluşturulan nesil için ilklendirmeleri yapan fonksiyon.
-	@param baseComposition: taklit edilecek müzik parçası
-	@return iklendirilmiş nesil
+    Function to initialize the first generation.
+    @param baseComposition: music piece to be imitated
+    @return: initialized generation
 '''
 
 def initializeCompositions(baseComposition):
-	compositions = []
+    compositions = []
 
-	for _ in range(100):
-		composition = Composition()
-		# notalar iklendirilir:
-		composition.initializeNotes(baseComposition)
-		# akortlar ve boşluklar ilklendirilir:
-		composition.assignRestsAndChords(baseComposition)
-		# nota süreleri ilklendirilir:
-		composition.assignDurations(baseComposition)
-		# fitness değeri ölçülür:
-		composition.calculateFitness(baseComposition)
-		compositions.append(composition)
+    for _ in range(100):
+        composition = Composition()
+        # notes are initialized:
+        composition.initializeNotes(baseComposition)
+        # chords and rests are initialized:
+        composition.assignRestsAndChords(baseComposition)
+        # note durations are initialized:
+        composition.assignDurations(baseComposition)
+        # fitness value is measured:
+        composition.calculateFitness(baseComposition)
+        compositions.append(composition)
 
-	return compositions
+    return compositions
 
-#########################################
 '''
-	Yeni birey için iki tane ebeveyn seçen fonksiyon.
-	@return: ebeveynlerin indisleri
+    Function to select two parents for a new individual.
+    @return: indices of the parents
 '''
 
 def selectParents():
-	# %70 ihtimalle en iyi 5 ebeveynden seçim yapılır
-	if randint(1, 10) <= 7:
-		return randint(0, 5), randint(0, 5)
-	# %21 ihtimalle en iyi 10 ebeveynden seçim yapılır
-	elif randint(1, 10) <= 7:
-		return randint(0, 10), randint(0, 10)
+    # 70% chance to select from the best 5 parents
+    if randint(1, 10) <= 7:
+        return randint(0, 5), randint(0, 5)
+    # 21% chance to select from the best 10 parents
+    elif randint(1, 10) <= 7:
+        return randint(0, 10), randint(0, 10)
 
-	# %9 ihtimalle en iyi 25 ebeveynden seçim yapılır
-	return randint(0, 25), randint(0, 25)
+    # 9% chance to select from the best 25 parents
+    return randint(0, 25), randint(0, 25)
 
-#########################################
 '''
-	Seçilen iki ebeveyni çarprazlayan fonksiyon.
-	@param notes1: birinci müzik parçası
-	@param notes2: ikinci müzik parçası
-	@return: çarprazlama sonucu oluşan müzik parçası
+    Function to crossover the selected two parents.
+    @param notes1: first music piece
+    @param notes2: second music piece
+    @return: music piece resulting from crossover
 '''
 
 def crossover(notes1, notes2):
-	newNotes = []
-	threshold = randint(0, len(notes1)-1) # çarpazlamanın yapılacağı konum
+    newNotes = []
+    threshold = randint(0, len(notes1)-1) # position for crossover
 
-	for i in range(threshold):
-		# mevcut nota %99 ihtimalle yeni müziğe eklenir
-		if type(notes1[i]) != note.Note or randint(1, 100) <= 99:
-			newNotes.append(notes1[i])
-		else:	# mutasyon
-			newNotes.append(randomNote(notes1[i].duration))
+    for i in range(threshold):
+        # existing note is added to new music with 99% probability
+        if type(notes1[i]) != note.Note or randint(1, 100) <= 99:
+            newNotes.append(notes1[i])
+        else:    # mutation
+            newNotes.append(randomNote(notes1[i].duration))
 
-	for i in range(threshold, len(notes1)):
-		# mevcut nota %99 ihtimalle yeni müziğe eklenir
-		if type(notes2[i]) != note.Note or randint(1, 100) <= 99:
-			newNotes.append(notes2[i])
-		else:  # mutasyon
-			newNotes.append(randomNote(notes2[i].duration))
+    for i in range(threshold, len(notes1)):
+        # existing note is added to new music with 99% probability
+        if type(notes2[i]) != note.Note or randint(1, 100) <= 99:
+            newNotes.append(notes2[i])
+        else:  # mutation
+            newNotes.append(randomNote(notes2[i].duration))
 
-	return newNotes
+    return newNotes
 
-#########################################
 '''
-	Nesillerin evrim geçirmesini sağlayan fonksiyon.
-	@param compositions: mevcut nesildeki müzik parçaları
-	@param baseComposition: taklit edilen müzik parçası
-	@return: evrim geçiren müzik parçaları
+    Function to allow generations to evolve.
+    @param compositions: current music pieces in the generation
+    @param baseComposition: music piece to be imitated
+    @return: evolved music pieces
 '''
 
 def evolution(compositions, baseComposition):
-	newCompositions = []
+    newCompositions = []
 
-	for i in range(len(compositions)):
-		# müzik parçasının ebeveynleri seçilir:
-		x, y = selectParents()
-		composition = Composition()
-		# seçilen ebeveynlerin çarprazlanmasıyla yeni birey oluşturulur:
-		composition.notes = crossover(compositions[x].notes, compositions[y].notes)
-		# yeni bireyin fitness değeri ölçülür:
-		composition.calculateFitness(baseComposition)
-		# birey, yeni nesle eklenir:
-		newCompositions.append(composition)
+    for i in range(len(compositions)):
+        # parents of the music piece are selected:
+        x, y = selectParents()
+        composition = Composition()
+        # new individual is created by crossing over the selected parents:
+        composition.notes = crossover(compositions[x].notes, compositions[y].notes)
+        # fitness value of the new individual is measured:
+        composition.calculateFitness(baseComposition)
+        # individual is added to the new generation:
+        newCompositions.append(composition)
 
-	return newCompositions
+    return newCompositions
 
-#########################################
 '''
-	Terminal ekranını temizleyen fonksiyon.
+    Function to clear the terminal screen.
 '''
 
 def clearScreen():
@@ -237,92 +206,59 @@ def clearScreen():
     else:                  # Linux & Mac OS
         os.system("clear")
 
-#########################################
 
 '''
-	Program logosunu bastıran fonksiyon.
+    Function to print the program logo.
 '''
 def printBanner():
-	clearScreen()
-	print("\n\t#####################################")
-	print("\t########## GENETİK BESTECİ ##########")
-	print("\t#####################################\n")
+    clearScreen()
+    print("\n\t#####################################")
+    print("\t########## GENETIC COMPOSER ##########")
+    print("\t#####################################\n")
 
-#########################################
-
-'''
-	Program menüsünü bastıran fonksiyon.
-'''
-def printMenu():
-	print("\t1. Gesi Bağları")
-	print("\t2. Lüküs Hayat")
-	print("\t3. Bir Masal Anlat Bana")
-	print("\t4. Bak Postacı Geliyor")
-	print("\t5. Küçük Kurbağa")
-	print("\t6. Tren Geliyor")
-	print("\t7. Yağmur Yağıyor")
-	print("\t8. Yağ Satarım")
-	print("\t9. Uç Uç Böceğim")
-	print("\t10. Şimdi Okullu Olduk")
-	print("\t11. Kendi '.mid' Dosyanız")
-	print("\t12. Çıkış")
-
-#########################################
 
 def main():
-	# şarkıların konumları için bir dizi:
-	songs = ["gesi.mid", "lukus.mid", "masal.mid", "postaci.mid", "kurbaga.mid",
-			 "tren.mid", "yagmur.mid", "yag.mid", "bocek.mid", "okul.mid"]
+    # user enters their own ".mid" file:
+    print("\tEnter the file path: ", end=""),
+    filePath = input()
 
-	# program menüsü yazdırılır:
-	printBanner()
-	printMenu()
-	print("\n\tŞarkı seçiminizi girin: ", end="")
-	choice = int(input()) # kullanıcıdan şarkı seçimi alınır
-	filePath = ""
+    if filePath == "": # exit:
+        exit()
 
-	if choice == 12: # çıkış:
-		exit()
-	elif choice == 11: # kullanıcı kendi ".mid" dosyasını girer:
-		print("\tDosyanın konumunu girin: ", end=""),
-		filePath = input()
-	else: # bir şarkı seçildi:
-		filePath = "dataset/" + songs[choice-1]
+    fileExists = os.path.exists(filePath)
 
-	fileExists = os.path.exists(filePath)
+    if (fileExists == False): # check if the file exists
+        print("\n\tFile could not be read.\n")
+        exit()
 
-	if (fileExists == False): # dosyanın mevcut olup olmadığı kontrol edilir
-		print("\n\tDosya okunamadı.\n")
-		exit()
+    # user input for the number of generations
+    print("\tEnter the number of generations (recommended: 100): ", end="")
+    gen = int(input())
 
-	# kullanıcıdan nesil (generation) sayısı alınır
-	print("\tNesil sayısını girin (tavsiye edilen: 100): ", end="")
-	gen = int(input())
+    print("\n\tCreating variations...")
 
-	print("\n\tVaryasyon oluşturuluyor...")
+    baseComposition = Composition()
+    baseComposition.notes = readStream(filePath) # .mid file is read
 
-	baseComposition = Composition()
-	baseComposition.notes = readStream(filePath) # .mid dosyası okunuyor
+    # first generation is initialized:
+    compositions = initializeCompositions(baseComposition)
+    # resulting pieces are sorted by fitness values:
+    compositions.sort(key=lambda composition: composition.fitness)
 
-	# ilk nesil ilklendiriliyor:
-	compositions = initializeCompositions(baseComposition)
-	# oluşan parçalar, fitness değerlerine göre sıralanıyor:
-	compositions.sort(key=lambda composition: composition.fitness)
+    print("\tStarting fitness value: ", compositions[0].fitness)
 
-	print("\tBaşlangıç fitness değeri: ", compositions[0].fitness)
+    for _ in range(gen):
+        # generations evolve:
+        compositions = evolution(compositions, baseComposition)
+        # resulting pieces are sorted by fitness values:
+        compositions.sort(key=lambda composition: composition.fitness)
 
-	for _ in range(gen):
-		# nesiller evrim geçiriyor:
-		compositions = evolution(compositions, baseComposition)
-		# oluşan parçalar, fitness değerlerine göre sıralanıyor:
-		compositions.sort(key=lambda composition: composition.fitness)
+    print("\t" + str(gen) + " generations resulted in a fitness value: ", compositions[0].fitness)
 
-	print("\t" + str(gen) + " nesil sonucu oluşan fitness değeri: ", compositions[0].fitness)
+    filePath = filePath.replace(".mid", "_variation.mid")
+    writeStream(compositions[0].notes, filePath) # variation music is written
 
-	filePath = filePath.replace(".mid", "_variation.mid")
-	writeStream(compositions[0].notes, filePath) # varyasyon müzik yazdırılıyor
-
-	print("\n\tVaryasyon oluşturuldu:", filePath)
+    print("\n\tVariation created:", filePath)
 
 if __name__ == '__main__':
-	main()
+    main()
